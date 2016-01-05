@@ -1,43 +1,41 @@
-/*********************************************
- This ambient module example console.logs 
- ambient light and sound levels and whenever a 
- specified light or sound level trigger is met.
- *********************************************/
-
 var tessel = require('tessel');
 var ambientlib = require('ambient-attx4');
 var ambient = ambientlib.use(tessel.port['B']);
 var http = require('http');
 var hueApiKey = '1d456a84386935a222fc058f36b3f57f';
-var togglingLights = false;
+var TRIGGER_VALUE = 0.17;
 
 function toggleLights(state, cb) {
-  var put_options = {
+  var req = http.request({
     host: '192.168.1.3',
     port: '80',
-    path: "/api/1d456a84386935a222fc058f36b3f57f/groups/0/action",
+    path: "/api/" + hueApiKey + "/groups/0/action",
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
     }
-  };
-  var req = http.request(put_options, function(res) {
+  }, function(res) {
     res.setEncoding('utf8');
-    res.on('data', function (body) {
-      cb(body)
+    var str = '';
+    res.on('data', function (chunk) {
+      str += chunk;
+      return str;
+    });
+    res.on('end', function(){
+      ambient.setSoundTrigger(TRIGGER_VALUE)
+      var lightIsOn = toBoolean(JSON.parse(str)[0]["success"]["/groups/0/action/on"]);
+      console.log('light is on...', lightIsOn);
     });
   });
-
+  req.write(JSON.stringify({"on": state }));
   req.on('error', function(e) {
     console.log('problem with request: ' + e.message);
   });
-
-  req.write('{"on":' + state + '}');
-  req.end(function(){ambient.setSoundTrigger(0.1)});
+  req.end();
 }
 
 function handleClap(data){
-  console.log("Something happened with sound: ", data);
+  console.log("sound level...", data);
 
   // Clear soundTrigger
   ambient.clearSoundTrigger();
@@ -54,34 +52,35 @@ function handleClap(data){
 
   var req = http.request(get_options, function(res) {
     res.setEncoding('utf8');
-    res.on('data', function (body) {
-      // JSON.parse doesnt work on tessel for some reason.
-      var lightsAreOn = body.indexOf('{"on":true,') > -1 ? false : true
-      console.log(lightsAreOn)
-      toggleLights(lightsAreOn, function(body){
+    var str = '';
+    res.on('data', function (chunk) {
+      str += chunk;
+      return str;
+    });
+    
+    res.on('end', function(){
+      var obj = JSON.parse(str);
+      var lightsAreOn = toBoolean(obj[Object.keys(obj)[0]]["state"]["on"]);
+      toggleLights(!lightsAreOn, function(body){
         console.log(body)
       })
-    });
+    })
+
   });
   
   req.on('error', function(e) {
     console.log('problem with request: ' + e.message);
   });
-
+  
   req.end();
-
 };
 
-
 ambient.on('ready', function () {
-  
   console.log('Listening...')
   
   // Set a sound level trigger
   // The trigger is a float between 0 and 1
-  
-  ambient.setSoundTrigger(0.1);
-
+  ambient.setSoundTrigger(TRIGGER_VALUE);
   ambient.on('sound-trigger', handleClap)
 });
 
@@ -90,4 +89,11 @@ ambient.on('error', function (err) {
 });
 
 
-
+var toBoolean = function(value) {
+  var strValue = String(value).toLowerCase();
+  strValue = ((!isNaN(strValue) && strValue !== '0') &&
+              strValue !== '' &&
+              strValue !== 'null' &&
+              strValue !== 'undefined') ? '1' : strValue;
+  return strValue === 'true' || strValue === '1' ? true : false
+};
