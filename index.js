@@ -2,14 +2,16 @@ var tessel = require('tessel');
 var ambientlib = require('ambient-attx4');
 var ambient = ambientlib.use(tessel.port['B']);
 var http = require('http');
-var hueApiKey = '1d456a84386935a222fc058f36b3f57f';
+
 var TRIGGER_VALUE = 0.17;
+var HUE_API_KEY = process.env.HUE_API_KEY;
+var HOST = '192.168.1.3';
 
 function toggleLights(state, cb) {
   var req = http.request({
-    host: '192.168.1.3',
+    host: HOST,
     port: '80',
-    path: "/api/" + hueApiKey + "/groups/0/action",
+    path: "/api/" + HUE_API_KEY + "/groups/0/action",
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
@@ -41,9 +43,9 @@ function handleClap(data){
   ambient.clearSoundTrigger();
 
   var get_options = {
-    host: '192.168.1.3',
+    host: HOST,
     port: '80',
-    path: '/api/' + hueApiKey + '/lights',
+    path: '/api/' + HUE_API_KEY + '/lights',
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'

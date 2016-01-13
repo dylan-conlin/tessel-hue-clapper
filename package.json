@@ -1,11 +1,16 @@
 {
-  "name": "tessel-test",
+  "name": "tessel hue clapper",
   "version": "1.0.0",
-  "description": "",
+  "description": "Toggle Philips Hue lights using Tessel's ambient sensor.",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "author": {
+    "name": "Dylan Conlin",
+    "email": "dylan.conlin@gmail.com"
   },
-  "author": "",
-  "license": "ISC"
+  "license": "MIT",
+  "dependencies": {
+    "ambient-attx4": "^0.2.6",
+    "http": "0.0.0",
+    "tessel": "^0.3.23"
+  }
 }
